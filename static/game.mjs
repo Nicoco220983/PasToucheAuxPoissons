@@ -1,4 +1,4 @@
-const { abs, floor, min, max, cos, atan2, PI, random } = Math
+const { abs, floor, min, max, sqrt, cos, atan2, PI, random } = Math
 
 import Two from './two.min.mjs'
 import * as utils from './utils.mjs'
@@ -14,14 +14,14 @@ const PLAYGROUND_MIN_Y = 60
 const PLAYGROUND_MAX_Y = 520
 const VICTORY_SCORE = 20
 
-const HERO_SIZE = 70
+const HERO_SIZE = nbPlayers => 70 * sqrt(2 / max(2, nbPlayers))
 const HERO_MAX_SPD = 200
 const HERO_DEC = 300
 const HERO_PARALYSIS_DUR = 2
 
-const STAR_SIZE = 70
+const STAR_SIZE = nbPlayers => 70 * sqrt(2 / max(2, nbPlayers))
 const STAR_SPEED = 50
-const STAR_SPAWN_PERIOD = 2
+const STAR_SPAWN_PERIOD = nbPlayers => 2 / sqrt(nbPlayers)
 
 const MONSTER_SIZE = 60
 const MONSTER_SPEED = 150
@@ -111,6 +111,8 @@ class GameScene extends Group {
   constructor(game) {
     super()
     this.game = game
+
+    this.nbPlayers = 0
     
     this.background = addTo(this, new Group())
     this.stars = addTo(this, new Group())
@@ -186,7 +188,7 @@ class GameScene extends Group {
       urlAbsPath("assets/background.jpg"),
       WIDTH / 2, HEIGHT / 2,
     ))
-    // background.scale = 2.5
+    background.scale = 1
   }
 
   addIntroTexts() {
@@ -217,6 +219,7 @@ class GameScene extends Group {
     if(!this.ready) return
     for(const playerId in this.game.players) if(this.step === "INTRO" && !this.getHero(playerId)) this.addHero(playerId)
     for(const hero of this.heros.children) if(!this.game.players[hero.playerId]) this.rmHero(hero.playerId)
+    this.nbPlayers = Object.keys(this.game.players).length
   }
   addHero(playerId) {
     addTo(this.heros, new Hero(
@@ -236,8 +239,8 @@ class GameScene extends Group {
 
   mayAddStar() {
     if(this.time > this.nextStarTime) {
-      addTo(this.stars, new Star())
-      this.nextStarTime = this.time + STAR_SPAWN_PERIOD
+      addTo(this.stars, new Star(this))
+      this.nextStarTime = this.time + STAR_SPAWN_PERIOD(this.nbPlayers)
     }
   }
 
@@ -365,7 +368,7 @@ class Hero extends Group {
     this.time = 0
     this.translation.x = x
     this.translation.y = y
-    this.width = this.height = HERO_SIZE
+    this.size = HERO_SIZE(this.scene.nbPlayers)
     this.spdX = this.spdY = 0
     this.step = "move"
     this.moveTime = -1
@@ -379,7 +382,7 @@ class Hero extends Group {
       new Two.Texture(heroCanvas.get(-1, "")),
       new Two.Texture(heroCanvas.get(1, "")),
     ], 0, 0))
-    this.bodyImg.scale = HERO_SIZE / 100
+    this.bodyImg.scale = this.size / 100
 
     addTo(this, new Two.Text(
       name,
@@ -390,6 +393,8 @@ class Hero extends Group {
 
   update(time) {
     this.time = time
+    this.size = HERO_SIZE(this.scene.nbPlayers)
+    this.bodyImg.scale = this.size / 100
     if(this.step === "move") {
       this.visible = true
       if(time - this.moveTime >= .6 && time - this.lastInput.time < .2) {
@@ -397,18 +402,18 @@ class Hero extends Group {
         this.spdY = HERO_MAX_SPD * this.lastInput.dirY
         this.moveTime = time
       }
-      let minX = HERO_SIZE/2, maxX = WIDTH - HERO_SIZE/2
-      let minY = PLAYGROUND_MIN_Y + HERO_SIZE/2, maxY = PLAYGROUND_MAX_Y - HERO_SIZE/2
+      let minX = this.size/2, maxX = WIDTH - this.size/2
+      let minY = PLAYGROUND_MIN_Y + this.size/2, maxY = PLAYGROUND_MAX_Y - this.size/2
       for(const hero of this.scene.heros.children) {
         if(hero === this) continue
         const { x, y } = this.translation, { x: hx, y: hy } = hero.translation
-        if(abs(x - hx) < HERO_SIZE) {
-          if(hy > y) maxY = min(maxY, hy - HERO_SIZE)
-          else minY = max(minY, hy + HERO_SIZE)
+        if(abs(x - hx) < this.size) {
+          if(hy > y) maxY = min(maxY, hy - this.size)
+          else minY = max(minY, hy + this.size)
         }
-        if(abs(y - hy) < HERO_SIZE) {
-          if(hx > x) maxX = min(maxX, hx - HERO_SIZE)
-          else minX = max(minX, hx + HERO_SIZE)
+        if(abs(y - hy) < this.size) {
+          if(hx > x) maxX = min(maxX, hx - this.size)
+          else minX = max(minX, hx + this.size)
         }
       }
       this.translation.x = bound(this.translation.x + this.spdX / FPS, minX, maxX)
@@ -421,7 +426,7 @@ class Hero extends Group {
       this.visible = (time * 4) % 1 > .5
       if(time > this.attackTime + HERO_PARALYSIS_DUR) {
         this.step = "respawn"
-        this.translation.x = -HERO_SIZE
+        this.translation.x = -this.size
         this.spdX = HERO_MAX_SPD
         this.spdY = 0
         this.bodyImg.index = 1
@@ -429,16 +434,16 @@ class Hero extends Group {
     } else if(this.step === "respawn") {
       this.visible = true
       this.translation.x += this.spdX / FPS
-      if(this.translation.x >= HERO_SIZE / 2) this.step = "move"
+      if(this.translation.x >= this.size / 2) this.step = "move"
     }
   }
 
   getHitBox() {
     return {
-      left: this.translation.x - HERO_SIZE/2,
+      left: this.translation.x - this.size/2,
       top: this.translation.y,
-      width: HERO_SIZE,
-      height: HERO_SIZE / 2,
+      width: this.size,
+      height: this.size / 2,
     }
   }
 
@@ -466,24 +471,30 @@ class Hero extends Group {
 
 class Star extends Two.Sprite {
 
-  constructor(y) {
+  constructor(scn) {
+    const size = STAR_SIZE(scn.nbPlayers)
     super(
       urlAbsPath("assets/star.png"),
       WIDTH + 50,
-      PLAYGROUND_MIN_Y + STAR_SIZE/2 + (PLAYGROUND_MAX_Y - PLAYGROUND_MIN_Y - STAR_SIZE) * random()
+      PLAYGROUND_MIN_Y + size/2 + (PLAYGROUND_MAX_Y - PLAYGROUND_MIN_Y - size) * random()
     )
-    this.width = this.height = STAR_SIZE
-    this.scale = STAR_SIZE / 100
+    this.scene = scn
+    this.syncSize()
+  }
+
+  syncSize() {
+    this.size = STAR_SIZE(this.scene.nbPlayers)
+    this.scale = this.size / 100
   }
 
   update(time) {
+    this.syncSize()
     this.translation.x -= STAR_SPEED / FPS
-    if(this.x < -STAR_SIZE) this.remove()
+    if(this.x < -this.size) this.remove()
   }
 
   getHitBox() {
-    const width = this.width * .4
-    const height = this.height * .4
+    const width = this.size * .4, height = this.size * .4
     return {
       left: this.translation.x - width/2,
       top: this.translation.y - height/2,
