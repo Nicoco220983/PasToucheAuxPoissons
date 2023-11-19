@@ -10,7 +10,7 @@ const HEIGHT = 600
 const FPS = 60  // hardcoded in Twojs
 const BACKGROUND_COLOR = "#aaf"
 
-const PLAYGROUND_MIN_Y = 60
+const PLAYGROUND_MIN_Y = 130
 const PLAYGROUND_MAX_Y = 520
 const VICTORY_SCORE = 20
 
@@ -280,13 +280,7 @@ class GameScene extends Group {
         for(const monster of this.monsters.children) {
           if(monster.attacking) {
             if(checkHit(hero, monster)) {
-              addTo(this.notifs, new Notif(
-                "- 1",
-                hero.translation.x, hero.translation.y,
-                { fill: "red" }
-              ))
               hero.onMonsterHit(this.time)
-              this.scoresPanel.syncScores()
             }
           }
         }
@@ -386,7 +380,7 @@ class Hero extends Group {
 
     addTo(this, new Two.Text(
       name,
-      0, 60,
+      0, this.size/2 + 25,
       { fill: "black", size: 30 }
     ))
   }
@@ -403,7 +397,7 @@ class Hero extends Group {
         this.moveTime = time
       }
       let minX = this.size/2, maxX = WIDTH - this.size/2
-      let minY = PLAYGROUND_MIN_Y + this.size/2, maxY = PLAYGROUND_MAX_Y - this.size/2
+      let minY = PLAYGROUND_MIN_Y - this.size/2, maxY = PLAYGROUND_MAX_Y - this.size/2
       for(const hero of this.scene.heros.children) {
         if(hero === this) continue
         const { x, y } = this.translation, { x: hx, y: hy } = hero.translation
@@ -450,7 +444,6 @@ class Hero extends Group {
   onMonsterHit(time) {
     this.step = "attacked"
     this.attackTime = time
-    this.score = max(0, this.score - 1)
     this.bodyImg.index += 2 
     ouchAud.replay()
   }
@@ -476,7 +469,7 @@ class Star extends Two.Sprite {
     super(
       urlAbsPath("assets/star.png"),
       WIDTH + 50,
-      PLAYGROUND_MIN_Y + size/2 + (PLAYGROUND_MAX_Y - PLAYGROUND_MIN_Y - size) * random()
+      PLAYGROUND_MIN_Y - size/2 + (PLAYGROUND_MAX_Y - PLAYGROUND_MIN_Y) * random()
     )
     this.scene = scn
     this.syncSize()
@@ -510,13 +503,7 @@ class Star extends Two.Sprite {
 }
 
 
-
-// new Two.ImageSequence([
-//   new Two.Texture(heroCanvas.get(-1, color)),
-//   new Two.Texture(heroCanvas.get(1, color)),
-// ], 0, 0))
-
-const monterCanvas = {
+const monsterCanvas = {
   base: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/piranha.png"))),
   get: function(dy) {
     const key = `trans:${dy}`
@@ -528,10 +515,10 @@ const monterCanvas = {
 class Monster extends Two.ImageSequence {
 
   constructor() {
-    const baseY = PLAYGROUND_MIN_Y + MONSTER_SIZE/2 + (PLAYGROUND_MAX_Y - PLAYGROUND_MIN_Y - MONSTER_SIZE) * random()
+    const baseY = PLAYGROUND_MIN_Y - MONSTER_SIZE/2 + (PLAYGROUND_MAX_Y - PLAYGROUND_MIN_Y) * random()
     super([
-        new Two.Texture(monterCanvas.get(55)),
-        new Two.Texture(monterCanvas.base),
+        new Two.Texture(monsterCanvas.get(55)),
+        new Two.Texture(monsterCanvas.base),
       ],
       WIDTH + 50,
       baseY
