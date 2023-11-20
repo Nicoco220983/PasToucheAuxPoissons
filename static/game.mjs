@@ -98,9 +98,9 @@ const musicIntro = addToLoads(new GameAudio(urlAbsPath("assets/Fluffing-a-Duck(c
 // Music promoted by https://www.chosic.com/free-music/all/
 // Attribution 4.0 International (CC BY 4.0)
 // https://creativecommons.org/licenses/by/4.0/
-const music = addToLoads(new GameAudio(urlAbsPath("assets/alexander-nakarada-superepic(chosic.com).opus"), { volume: .2 }))
+const music = addToLoads(new GameAudio(urlAbsPath("assets/alexander-nakarada-superepic(chosic.com).opus"), { volume: .1 }))
 
-const ouchAud = addToLoads(new GameAudio(urlAbsPath("assets/ouch.opus"), { volume: .5 }))
+const biteAud = addToLoads(new GameAudio(urlAbsPath("assets/bite.mp3"), { volume: .5 }))
 const coinAud = addToLoads(new GameAudio(urlAbsPath("assets/coin.opus"), { volume: 1 }))
 
 
@@ -445,7 +445,7 @@ class Hero extends Group {
     this.step = "attacked"
     this.attackTime = time
     this.bodyImg.index += 2 
-    ouchAud.replay()
+    biteAud.replay()
   }
 
   onStarHit(star) {
