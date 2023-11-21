@@ -295,26 +295,34 @@ class ArrowButton extends Two.ImageSequence {
 }
 
 
-class QuackButton extends TextButton {
+class QuackButton extends Group {
   constructor(scn, x, y) {
-    super("QUACK !", "yellow", x, y)
+    super()
     this.scene = scn
     this.joypad = scn.joypad
+    this.clickableButton = addTo(this, new TextButton("QUACK !", "red", x, y))
+    this.notClickableButton = addTo(this, new TextButton("QUACK !", "grey", x, y))
+    this.time = 0
     this.lastQuackTime = -QUACK_PERIOD
+    this.syncButton()
   }
   isClickable() {
     return this.time > this.lastQuackTime + QUACK_PERIOD
   }
+  update(time) {
+    super.update(time)
+    this.time = time
+    this.syncButton()
+  }
+  syncButton() {
+    this.clickableButton.visible = this.isClickable()
+    this.notClickableButton.visible = !this.isClickable()
+  }
   click(pointer) {
-    super.click(pointer)
     if(!pointer.prevIsDown && this.isClickable()) {
       this.lastQuackTime = this.time
       this.joypad.sendInput({ quack: true })
     }
-  }
-  update(time) {
-    super.update(time)
-    this.buttonSprite.index = this.isClickable() ? 0 : 1
   }
 }
 
@@ -343,17 +351,14 @@ class ReadyButton extends Group {
 }
 
 
-class RestartButton extends Two.Sprite {
+class RestartButton extends TextButton {
   constructor(scn, x, y) {
-    super(
-      urlAbsPath("assets/restart_button.png"),
-      x, y,
-    )
-    this.scale = 250 / 250
+    super("RESTART", "yellow", x, y)
     this.scene = scn
     this.joypad = scn.joypad
   }
   click(pointer) {
+    super.click(pointer)
     if(!pointer.prevIsDown) {
       this.joypad.sendInput({ restart: true })
     }
