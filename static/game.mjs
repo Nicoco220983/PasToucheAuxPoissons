@@ -18,6 +18,8 @@ const HERO_SIZE = nbPlayers => 70 * sqrt(2 / max(2, nbPlayers))
 const HERO_MAX_SPD = 200
 const HERO_DEC = 300
 const HERO_PARALYSIS_DUR = 2
+const QUACK_PERIOD = 10
+const QUACK_RANGE = nbPlayers => 200 * sqrt(2 / max(2, nbPlayers))
 
 const STAR_SIZE = nbPlayers => 70 * sqrt(2 / max(2, nbPlayers))
 const STAR_SPEED = 50
@@ -100,8 +102,9 @@ const musicIntro = addToLoads(new GameAudio(urlAbsPath("assets/Fluffing-a-Duck(c
 // https://creativecommons.org/licenses/by/4.0/
 const music = addToLoads(new GameAudio(urlAbsPath("assets/alexander-nakarada-superepic(chosic.com).opus"), { volume: .1 }))
 
-const biteAud = addToLoads(new GameAudio(urlAbsPath("assets/bite.mp3"), { volume: .5 }))
+const biteAud = addToLoads(new GameAudio(urlAbsPath("assets/bite.opus"), { volume: .5 }))
 const coinAud = addToLoads(new GameAudio(urlAbsPath("assets/coin.opus"), { volume: 1 }))
+const quackAud = addToLoads(new GameAudio(urlAbsPath("assets/quack.opus"), { volume: 1 }))
 
 
 
@@ -369,6 +372,7 @@ class Hero extends Group {
     this.lastInput = { time: -1 }
     this.score = 0
     this.attackTime = 0
+    this.lastQuackTime = -QUACK_PERIOD
 
     this.bodyImg = addTo(this, new Two.ImageSequence([
       new Two.Texture(heroCanvas.get(-1, color)),
@@ -392,9 +396,7 @@ class Hero extends Group {
     if(this.step === "move") {
       this.visible = true
       if(time - this.moveTime >= .6 && time - this.lastInput.time < .2) {
-        this.spdX = HERO_MAX_SPD * this.lastInput.dirX
-        this.spdY = HERO_MAX_SPD * this.lastInput.dirY
-        this.moveTime = time
+        this.move(this.lastInput.dirX, this.lastInput.dirY)
       }
       let minX = this.size/2, maxX = WIDTH - this.size/2
       let minY = PLAYGROUND_MIN_Y - this.size/2, maxY = PLAYGROUND_MAX_Y - this.size/2
@@ -432,6 +434,30 @@ class Hero extends Group {
     }
   }
 
+  move(dirX, dirY) {
+    this.spdX = HERO_MAX_SPD * dirX
+    this.spdY = HERO_MAX_SPD * dirY
+    this.moveTime = this.time
+  }
+
+  canQuack() {
+    return this.time > this.lastQuackTime + QUACK_PERIOD
+  }
+
+  quack() {
+    this.lastQuackTime = this.time
+    quackAud.replay()
+    const quackRange = QUACK_RANGE(this.scene.nbPlayers)
+    for(const hero of this.scene.heros.children) {
+      if(hero === this) continue
+      if(dist(this, hero) > quackRange) continue
+      hero.move(
+        hero.translation.x > this.translation.x ? 1 : -1,
+        hero.translation.y > this.translation.y ? 1 : -1,
+      )
+    }
+  }
+
   getHitBox() {
     return {
       left: this.translation.x - this.size/2,
@@ -457,6 +483,9 @@ class Hero extends Group {
       this.lastInput.dirX = kwargs.dirX
       this.lastInput.dirY = kwargs.dirY
       this.lastInput.time = this.time
+    }
+    if(kwargs.quack) {
+      if(this.canQuack()) this.quack()
     }
   }
 }
@@ -682,6 +711,13 @@ function sumTo(val, dVal, toVal) {
 
 function bound(val, minVal, maxVal) {
   return max(min(val, maxVal), minVal)
+}
+
+function dist(ent1, ent2) {
+  const { x: x1, y: y1 } = ent1.translation
+  const { x: x2, y: y2 } = ent2.translation
+  const dx = x2-x1, dy = y2-y1
+  return sqrt(dx*dx+dy*dy)
 }
 
 

@@ -10,6 +10,8 @@ const HEIGHT = 450
 const FPS = 60  // hardcoded in Twojs
 const BACKGROUND_COLOR = "#111"
 
+const QUACK_PERIOD = 10
+
 
 function startJoypad(wrapperEl, playerWs) {
   return new Joypad(wrapperEl, playerWs)
@@ -103,6 +105,7 @@ class JoypadScene extends Group {
   initSprites() {
     this.addWaitingTexts()
     this.addArrowButtons()
+    this.addQuackButton()
     this.addReadyButton()
     this.addRestartButton()
   }
@@ -125,6 +128,11 @@ class JoypadScene extends Group {
     }
   }
 
+  addQuackButton() {
+    this.quackButton = addTo(this.buttons, new QuackButton(this, WIDTH/2, HEIGHT/2))
+    this.quackButton.visible = false
+  }
+
   addReadyButton() {
     this.readyButton = addTo(this.buttons, new ReadyButton(this, WIDTH/2, 75))
     this.readyButton.visible = false
@@ -144,6 +152,7 @@ class JoypadScene extends Group {
 
     this.waitingTexts.visible = step === "WAITING"
     for(const btn of this.arrowButtons) btn.visible = (step === "INTRO" || step === "GAME" || step === "VICTORY")
+    this.quackButton.visible = (step === "INTRO" || step === "GAME" || step === "VICTORY")
     this.readyButton.visible = step === "INTRO"
     this.readyButton.setReady(false)
     this.restartButton.visible = false
@@ -176,6 +185,57 @@ class JoypadScene extends Group {
 
   onGameState(gameState) {
     this.setStep(gameState.step)
+  }
+}
+
+
+const buttonCanvas = {
+  base: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/button.png"))),
+  get: function(width, color, clicked) {
+    const key = `trans:${width}:${color}:${clicked}`
+    if(!this[key]) {
+      this[key] = document.createElement("canvas")
+      assign(this[key], { width, height: 100 })
+      const ctx = this[key].getContext("2d")
+      const sx = clicked ? 150 : 0
+      ctx.drawImage(this.base, sx, 0, 50, 100, 0, 0, 50, 100)
+      for(let i=0; i<floor((width-100)/50); ++i)
+        ctx.drawImage(this.base, sx+50, 0, 50, 100, (i+1)*50, 0, 50, 100)
+      ctx.drawImage(this.base, sx+50, 0, 50, 100, width-100, 0, 50, 100)
+      ctx.drawImage(this.base, sx+100, 0, 50, 100, width-50, 0, 50, 100)
+      utils.colorizeCanvas(this[key], color)
+    }
+    return this[key]
+  }
+}
+
+
+class TextButton extends Group {
+  constructor(text, color, x, y, kwargs) {
+    super()
+    const textColor = kwargs && kwargs.textColor || "white"
+    const textSize = kwargs && kwargs.textSize || 40
+    assign(this.translation, { x, y })
+    const textSprite = new Two.Text(
+      text, 0, 5, { fill: textColor, size: textSize, weight: 1000 }
+    )
+    const { width: txtWidth, height: textHeight } = Two.Text.Measure(textSprite)
+    this.buttonSprite = addTo(this, new Two.ImageSequence([
+      new Two.Texture(buttonCanvas.get(txtWidth+75, color, false)),
+      new Two.Texture(buttonCanvas.get(txtWidth+75, color, true)),
+    ]))
+    addTo(this, textSprite)
+    this.time = 0
+    this.lastClickTime = -1
+  }
+
+  click(pointer) {
+    this.lastClickTime = this.time
+  }
+
+  update(time) {
+    this.time = time
+    this.buttonSprite.index = (time < this.lastClickTime + .1) ? 1 : 0
   }
 }
 
@@ -235,6 +295,29 @@ class ArrowButton extends Two.ImageSequence {
 }
 
 
+class QuackButton extends TextButton {
+  constructor(scn, x, y) {
+    super("QUACK !", "yellow", x, y)
+    this.scene = scn
+    this.joypad = scn.joypad
+    this.lastQuackTime = -QUACK_PERIOD
+  }
+  isClickable() {
+    return this.time > this.lastQuackTime + QUACK_PERIOD
+  }
+  click(pointer) {
+    super.click(pointer)
+    if(!pointer.prevIsDown && this.isClickable()) {
+      this.lastQuackTime = this.time
+      this.joypad.sendInput({ quack: true })
+    }
+  }
+  update(time) {
+    super.update(time)
+    this.buttonSprite.index = this.isClickable() ? 0 : 1
+  }
+}
+
 class ReadyButton extends Group {
   constructor(scn, x, y) {
     super()
@@ -274,57 +357,6 @@ class RestartButton extends Two.Sprite {
     if(!pointer.prevIsDown) {
       this.joypad.sendInput({ restart: true })
     }
-  }
-}
-
-
-const buttonCanvas = {
-  base: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/button.png"))),
-  get: function(width, color, clicked) {
-    const key = `trans:${width}:${color}:${clicked}`
-    if(!this[key]) {
-      this[key] = document.createElement("canvas")
-      assign(this[key], { width, height: 100 })
-      const ctx = this[key].getContext("2d")
-      const sx = clicked ? 150 : 0
-      ctx.drawImage(this.base, sx, 0, 50, 100, 0, 0, 50, 100)
-      for(let i=0; i<floor((width-100)/50); ++i)
-        ctx.drawImage(this.base, sx+50, 0, 50, 100, (i+1)*50, 0, 50, 100)
-      ctx.drawImage(this.base, sx+50, 0, 50, 100, width-100, 0, 50, 100)
-      ctx.drawImage(this.base, sx+100, 0, 50, 100, width-50, 0, 50, 100)
-      utils.colorizeCanvas(this[key], color)
-    }
-    return this[key]
-  }
-}
-
-
-class TextButton extends Group {
-  constructor(text, color, x, y, kwargs) {
-    super()
-    const textColor = kwargs && kwargs.textColor || "white"
-    const textSize = kwargs && kwargs.textSize || 40
-    assign(this.translation, { x, y })
-    const textSprite = new Two.Text(
-      text, 0, 5, { fill: textColor, size: textSize, weight: 1000 }
-    )
-    const { width: txtWidth, height: textHeight } = Two.Text.Measure(textSprite)
-    this.buttonSprite = addTo(this, new Two.ImageSequence([
-      new Two.Texture(buttonCanvas.get(txtWidth+75, color, false)),
-      new Two.Texture(buttonCanvas.get(txtWidth+75, color, true)),
-    ]))
-    addTo(this, textSprite)
-    this.time = 0
-    this.lastClickTime = -1
-  }
-
-  click(pointer) {
-    this.lastClickTime = this.time
-  }
-
-  update(time) {
-    this.time = time
-    this.buttonSprite.index = (time < this.lastClickTime + .1) ? 1 : 0
   }
 }
 
