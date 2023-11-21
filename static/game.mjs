@@ -15,8 +15,8 @@ const PLAYGROUND_MAX_Y = 520
 const VICTORY_SCORE = 20
 
 const HERO_SIZE = nbPlayers => 70 * sqrt(2 / max(2, nbPlayers))
-const HERO_MAX_SPD = 200
-const HERO_DEC = 300
+const HERO_MAX_SPD = nbPlayers => 200 * sqrt(2 / max(2, nbPlayers))
+const HERO_DEC = nbPlayers => 300 * sqrt(2 / max(2, nbPlayers))
 const HERO_PARALYSIS_DUR = 2
 const QUACK_PERIOD = 10
 const QUACK_RANGE = nbPlayers => 200 * sqrt(2 / max(2, nbPlayers))
@@ -414,8 +414,9 @@ class Hero extends Group {
       }
       this.translation.x = bound(this.translation.x + this.spdX / FPS, minX, maxX)
       this.translation.y = bound(this.translation.y + this.spdY / FPS, minY, maxY)
-      this.spdX = sumTo(this.spdX, HERO_DEC / FPS, 0)
-      this.spdY = sumTo(this.spdY, HERO_DEC / FPS, 0)
+      const dec = HERO_DEC(this.scene.nbPlayers)
+      this.spdX = sumTo(this.spdX, dec / FPS, 0)
+      this.spdY = sumTo(this.spdY, dec / FPS, 0)
       if(this.spdX < 0) this.bodyImg.index = 0
       if(this.spdX > 0) this.bodyImg.index = 1
     } else if(this.step === "attacked") {
@@ -423,7 +424,7 @@ class Hero extends Group {
       if(time > this.attackTime + HERO_PARALYSIS_DUR) {
         this.step = "respawn"
         this.translation.x = -this.size
-        this.spdX = HERO_MAX_SPD
+        this.spdX = HERO_MAX_SPD(1)
         this.spdY = 0
         this.bodyImg.index = 1
       }
@@ -435,8 +436,9 @@ class Hero extends Group {
   }
 
   move(dirX, dirY) {
-    this.spdX = HERO_MAX_SPD * dirX
-    this.spdY = HERO_MAX_SPD * dirY
+    const spd = HERO_MAX_SPD(this.scene.nbPlayers)
+    this.spdX = spd * dirX
+    this.spdY = spd * dirY
     this.moveTime = this.time
   }
 
