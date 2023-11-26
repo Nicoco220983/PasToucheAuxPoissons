@@ -10,7 +10,7 @@ const HEIGHT = 450
 const FPS = 60  // hardcoded in Twojs
 const BACKGROUND_COLOR = "#111"
 
-const QUACK_PERIOD = 10
+const QUACK_PERIOD = 3
 
 
 function startJoypad(wrapperEl, playerWs) {
@@ -156,6 +156,8 @@ class JoypadScene extends Group {
     this.readyButton.visible = step === "INTRO"
     this.readyButton.setReady(false)
     this.restartButton.visible = false
+
+    if(step === "WAITING") this.quackButton.init()
     this.timeForRestartButton = null
   }
 
@@ -303,6 +305,9 @@ class QuackButton extends Group {
     this.clickableButton = addTo(this, new TextButton("QUACK !", "red", x, y))
     this.notClickableButton = addTo(this, new TextButton("QUACK !", "grey", x, y))
     this.time = 0
+    this.init()
+  }
+  init() {
     this.lastQuackTime = -QUACK_PERIOD
     this.syncButton()
   }

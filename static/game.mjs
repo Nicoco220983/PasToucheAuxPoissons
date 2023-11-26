@@ -14,14 +14,15 @@ const PLAYGROUND_MIN_Y = 130
 const PLAYGROUND_MAX_Y = 520
 const VICTORY_SCORE = 20
 
-const HERO_SIZE = nbPlayers => 70 * sqrt(2 / max(2, nbPlayers))
-const HERO_MAX_SPD = nbPlayers => 200 * sqrt(2 / max(2, nbPlayers))
-const HERO_DEC = nbPlayers => 300 * sqrt(2 / max(2, nbPlayers))
+const scaleGame = nbPlayers => min(1, sqrt(4/(nbPlayers+2)))
+const HERO_SIZE = nbPlayers => 70 * scaleGame(nbPlayers)
+const HERO_MAX_SPD = nbPlayers => 200 * scaleGame(nbPlayers)
+const HERO_DEC = nbPlayers => 300 * scaleGame(nbPlayers)
 const HERO_PARALYSIS_DUR = 2
-const QUACK_PERIOD = 10
-const QUACK_RANGE = nbPlayers => 200 * sqrt(2 / max(2, nbPlayers))
+const QUACK_PERIOD = 3
+const QUACK_RANGE = nbPlayers => 200 * scaleGame(nbPlayers)
 
-const STAR_SIZE = nbPlayers => 70 * sqrt(2 / max(2, nbPlayers))
+const STAR_SIZE = nbPlayers => 70 * scaleGame(nbPlayers)
 const STAR_SPEED = 50
 const STAR_SPAWN_PERIOD = nbPlayers => 2 / sqrt(nbPlayers)
 
