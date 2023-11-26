@@ -191,57 +191,6 @@ class JoypadScene extends Group {
 }
 
 
-const buttonCanvas = {
-  base: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/button.png"))),
-  get: function(width, color, clicked) {
-    const key = `trans:${width}:${color}:${clicked}`
-    if(!this[key]) {
-      this[key] = document.createElement("canvas")
-      assign(this[key], { width, height: 100 })
-      const ctx = this[key].getContext("2d")
-      const sx = clicked ? 150 : 0
-      ctx.drawImage(this.base, sx, 0, 50, 100, 0, 0, 50, 100)
-      for(let i=0; i<floor((width-100)/50); ++i)
-        ctx.drawImage(this.base, sx+50, 0, 50, 100, (i+1)*50, 0, 50, 100)
-      ctx.drawImage(this.base, sx+50, 0, 50, 100, width-100, 0, 50, 100)
-      ctx.drawImage(this.base, sx+100, 0, 50, 100, width-50, 0, 50, 100)
-      utils.colorizeCanvas(this[key], color)
-    }
-    return this[key]
-  }
-}
-
-
-class TextButton extends Group {
-  constructor(text, color, x, y, kwargs) {
-    super()
-    const textColor = kwargs && kwargs.textColor || "white"
-    const textSize = kwargs && kwargs.textSize || 40
-    assign(this.translation, { x, y })
-    const textSprite = new Two.Text(
-      text, 0, 5, { fill: textColor, size: textSize, weight: 1000 }
-    )
-    const { width: txtWidth, height: textHeight } = Two.Text.Measure(textSprite)
-    this.buttonSprite = addTo(this, new Two.ImageSequence([
-      new Two.Texture(buttonCanvas.get(txtWidth+75, color, false)),
-      new Two.Texture(buttonCanvas.get(txtWidth+75, color, true)),
-    ]))
-    addTo(this, textSprite)
-    this.time = 0
-    this.lastClickTime = -1
-  }
-
-  click(pointer) {
-    this.lastClickTime = this.time
-  }
-
-  update(time) {
-    this.time = time
-    this.buttonSprite.index = (time < this.lastClickTime + .1) ? 1 : 0
-  }
-}
-
-
 const arrowCanvas = {
   base: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/joypad_arrow.png"))),
   baseClicked: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/joypad_arrow_clicked.png"))),
@@ -293,6 +242,57 @@ class ArrowButton extends Two.ImageSequence {
       this.joypad.sendInput({ dirX: this.dirX, dirY: this.dirY })
       this.lastSendTime = this.time
     }
+  }
+}
+
+
+const buttonCanvas = {
+  base: addToLoads(utils.newCanvasFromSrc(urlAbsPath("assets/button.png"))),
+  get: function(width, color, clicked) {
+    const key = `trans:${width}:${color}:${clicked}`
+    if(!this[key]) {
+      this[key] = document.createElement("canvas")
+      assign(this[key], { width, height: 100 })
+      const ctx = this[key].getContext("2d")
+      const sx = clicked ? 150 : 0
+      ctx.drawImage(this.base, sx, 0, 50, 100, 0, 0, 50, 100)
+      for(let i=0; i<floor((width-100)/50); ++i)
+        ctx.drawImage(this.base, sx+50, 0, 50, 100, (i+1)*50, 0, 50, 100)
+      ctx.drawImage(this.base, sx+50, 0, 50, 100, width-100, 0, 50, 100)
+      ctx.drawImage(this.base, sx+100, 0, 50, 100, width-50, 0, 50, 100)
+      utils.colorizeCanvas(this[key], color)
+    }
+    return this[key]
+  }
+}
+
+
+class TextButton extends Group {
+  constructor(text, color, x, y, kwargs) {
+    super()
+    const textColor = kwargs && kwargs.textColor || "white"
+    const textSize = kwargs && kwargs.textSize || 40
+    assign(this.translation, { x, y })
+    const textSprite = new Two.Text(
+      text, 0, 5, { fill: textColor, size: textSize, weight: 1000 }
+    )
+    const { width: txtWidth, height: textHeight } = Two.Text.Measure(textSprite)
+    this.buttonSprite = addTo(this, new Two.ImageSequence([
+      new Two.Texture(buttonCanvas.get(txtWidth+75, color, false)),
+      new Two.Texture(buttonCanvas.get(txtWidth+75, color, true)),
+    ]))
+    addTo(this, textSprite)
+    this.time = 0
+    this.lastClickTime = -1
+  }
+
+  click(pointer) {
+    this.lastClickTime = this.time
+  }
+
+  update(time) {
+    this.time = time
+    this.buttonSprite.index = (time < this.lastClickTime + .1) ? 1 : 0
   }
 }
 
